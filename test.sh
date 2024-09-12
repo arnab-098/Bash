@@ -1,13 +1,34 @@
-#!/usr/bin/bash
+#!/bin/bash
 
-file="./data.txt"
+file="password.txt"
+exist=$(ls -la | tr -s " " | cut -d " " -f 9 | grep -c $file)
+if [ $exist -gt 0 ]; then
+  content=$(cat $file | wc -l)
+  if [ $content -eq 0 ]; then
+    read -s -p "Create a password: " password
+    echo ""
+    echo $password >>$file
+  fi
+else
+  read -s -p "Create a password: " password
+  echo ""
+  echo $password >>$file
+fi
 
-n=$(expr $(cat $file | wc -l) - 1)
-names1=$(cat $file | tail -n $n | cut -d "|" -f 2 | sort | uniq -d)
-names2=$(cat $file | tail -n $n | cut -d "|" -f 2 | sort | uniq -u)
+password=$(cat $file)
 
-names="$names1 $names2"
+echo -e "Hello user!"
+read -s -p "Enter password to get access: " x
+echo ""
 
-for name in $names; do
-  echo $name
-done
+if [ "$x" = $password ]; then
+  read -p "Enter file: " f
+  exist=$(ls -la | tr -s " " | grep -Pic "^(.* ){8}$f.*$")
+  if [ $exist -gt 0 ]; then
+    echo "FILE EXISTS"
+  else
+    echo "FILE DOES NOT EXIST"
+  fi
+else
+  echo -e "Fuck off loser!"
+fi
