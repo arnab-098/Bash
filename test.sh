@@ -23,7 +23,7 @@ echo ""
 
 if [ "$x" = $password ]; then
   read -p "Enter file: " f
-  exist=$(ls -la | tr -s " " | grep -Pic "^(.* ){8}$f.*$")
+  exist=$(ls -la | tr -s " " | grep -Picw "^(.* ){8}$f([.].*)*")
   if [ $exist -gt 0 ]; then
     echo "FILE EXISTS"
   else
