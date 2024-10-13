@@ -1,0 +1,1 @@
+(echo ""; figlet -f pagga "Fortune"; echo ""; fortune; echo ""; figlet -f pagga "Files"; echo ""; ls -lah | awk 'NR>1'; echo ""; figlet -f pagga "Goodbye"; whoami | figlet -f pagga) | cowsay -nf turtle
