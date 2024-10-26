@@ -1,13 +1,12 @@
 #!/bin/bash
 
 file="password.txt"
-exist=$(ls -la | tr -s " " | cut -d " " -f 9 | grep -c $file)
-if [ $exist -gt 0 ]; then
+if [ -f $file ]; then
   content=$(cat $file | wc -l)
-  if [ $content -eq 0 ]; then
+  if [ $content -ne 1 ]; then
     read -s -p "Create a password: " password
     echo ""
-    echo $password >>$file
+    echo $password >$file
   fi
 else
   read -s -p "Create a password: " password
@@ -17,18 +16,29 @@ fi
 
 password=$(cat $file)
 
-echo -e "Hello user!"
-read -s -p "Enter password to get access: " x
-echo ""
+count=0
 
-if [ "$x" = $password ]; then
-  read -p "Enter file: " f
-  exist=$(ls -la | tr -s " " | grep -Pi "^(.* ){8}\.?$f(\..*)?$")
-  if [ "$exist" != "" ]; then
-    echo "FILE EXISTS"
+echo -e "Hello user!\n"
+
+while [ $count -lt 3 ]; do
+  read -s -p "Enter password to get access: " x
+  echo ""
+  if [ "$x" == "$password" ]; then
+    read -p "Enter file: " f
+    exist=$(ls -la | tr -s " " | grep -Pi "^([^ ]+ ){8}\.?$f(\.[^ ]+)?$")
+    if [ ! -z "$exist" ]; then
+      echo "File exists"
+    else
+      echo "File does not exist"
+    fi
+    exit 0
   else
-    echo "FILE DOES NOT EXIST"
+    count=$(expr $count + 1)
+    echo "Incorrect password"
+    if [ $count -lt 3 ]; then
+      echo -e "$(expr 3 - $count) attemp(s) remaining!\n"
+    else
+      echo -e "Too many wrong attempts. Try again later\n"
+    fi
   fi
-else
-  echo -e "Fuck off loser!"
-fi
+done
