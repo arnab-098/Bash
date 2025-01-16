@@ -13,8 +13,8 @@ if [ -z "$file" ]; then
   exit 1
 fi
 
-if [[ "$file" = ~* ]]; then
-  file="/home/$(whoami)/$(echo $file | cut -c 2-)"
+if [[ "$file" =~ "^~.*$" ]]; then
+  file="$(HOME)/$(echo $file | cut -c 2-)"
 fi
 
 dir=$(dirname "$file")
