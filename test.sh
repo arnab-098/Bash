@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo $(basename $0)
+
 arr=("a" "abc" "wxyz hello")
 
 for i in "${!arr[@]}"; do
