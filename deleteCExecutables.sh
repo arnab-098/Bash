@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z "$1" ]; then
-  echo "Directory path not provided"
+  echo "Directory path(s) not provided"
   exit
 fi
 
