@@ -18,7 +18,7 @@ done
 
 for path in ${paths[@]}; do
     length=$(expr $(ls -la $path | wc -l) - 3)
-    files=$(ls -la $path | tr -s " " | cut -d " " -f 9 | tail -n $length)
+    files=$(ls -la $path | tr -s " " | grep -iP "^-.*$" | cut -d " " -f 9 | tail -n $length)
 
     filePath=""
     idx=0
