@@ -36,7 +36,7 @@ This repository contains a variety of Bash scripts that serve different purposes
 ### Prerequisites
 
 * A Unix-like operating system (Linux, macOS)
-* Bash shell([YouTube][3])
+* Bash shell
 
 ### Usage
 
@@ -69,7 +69,7 @@ Replace `script_name.sh` with the desired script file.
 
 ## Learning Resources
 
-For understanding the concepts implemented in these scripts, consider referring to the following resources:([Medium][4])
+For understanding the concepts implemented in these scripts, consider referring to the following resources:
 
 * **The Linux Command Line** by William E. Shotts, Jr.
 * **Advanced Bash-Scripting Guide** by Mendel Cooper
@@ -78,13 +78,3 @@ For understanding the concepts implemented in these scripts, consider referring 
 
 Contributions are welcome! Feel free to fork the repository, submit issues, and create pull requests.
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-[1]: https://www.ninjaone.com/blog/what-is-bash-scripting/?utm_source=chatgpt.com "What is Bash Scripting? Tutorial and ..."
-[2]: https://github.com/arnab-098/Bash?utm_source=chatgpt.com "GitHub - arnab-098/Bash: Bash Codes"
-[3]: https://www.youtube.com/watch?v=U2_MvxnqLRE&utm_source=chatgpt.com "Bash Scripting 4 -- How Bash Scripts ..."
-[4]: https://medium.com/geekculture/bash-scripting-for-dummies-5d855cbada66?utm_source=chatgpt.com "Bash Scripting For Dummies. In this ..."
