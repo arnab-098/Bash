@@ -47,10 +47,10 @@ assetfinder $url >>$HOME/$url/recon/assets.txt
 cat $HOME/$url/recon/assets.txt | grep $1 >>$HOME/$url/recon/final.txt
 rm $HOME/$url/recon/assets.txt
 
-#echo "[+] Double checking for subdomains with amass..."
-#amass enum -d $HOME/$url >> $HOME/$url/recon/f.txt
-#sort -u $HOME/$url/recon/f.txt >> $HOME/$url/recon/final.txt
-#rm $HOME/$url/recon/f.txt
+echo "[+] Double checking for subdomains with amass..."
+amass enum -d $HOME/$url >> $HOME/$url/recon/f.txt
+sort -u $HOME/$url/recon/f.txt >> $HOME/$url/recon/final.txt
+rm $HOME/$url/recon/f.txt
 
 echo "[+] Probing for alive domains..."
 cat $HOME/$url/recon/final.txt | sort -u | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ':443' >>$HOME/$url/recon/httprobe/a.txt
