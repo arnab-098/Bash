@@ -18,7 +18,7 @@ pacman -Qdtq &>/dev/null && pacman -Rns --noconfirm $(pacman -Qdtq) || echo "No 
 
 # 3. Clean pacman cache (keep last 2 versions)
 echo "[+] Cleaning pacman cache..."
-paccache -rk2
+paccache -rk0
 
 # 4. Clean yay cache if yay exists
 if command -v yay &>/dev/null; then
