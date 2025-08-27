@@ -1,113 +1,103 @@
 #!/bin/bash
 
+# Colors
+RED="\033[1;31m"
+GREEN="\033[1;32m"
+RESET="\033[0m"
+
 if [ -z "$1" ]; then
-    echo "Invalid syntax"
-    echo "$(basename "$0") <url>"
-    exit
+    echo -e "${RED}Usage: $(basename "$0") <domain>${RESET}"
+    exit 1
 fi
 
-url="$1"
+domain="$1"
+base_dir="$HOME/recon/$domain"
 
-if [ ! -d "$HOME/$url" ]; then
-    mkdir $HOME/$url
-fi
-if [ ! -d "$HOME/$url/recon" ]; then
-    mkdir $HOME/$url/recon
-fi
-if [ ! -d "$HOME/$url/recon/gowitness" ]; then
-    mkdir $HOME/$url/recon/gowitness
-fi
-if [ ! -d "$HOME/$url/recon/scans" ]; then
-    mkdir $HOME/$url/recon/scans
-fi
-if [ ! -d "$HOME/$url/recon/httprobe" ]; then
-    mkdir $HOME/$url/recon/httprobe
-fi
-if [ ! -d "$HOME/$url/recon/potential_takeovers" ]; then
-    mkdir $HOME/$url/recon/potential_takeovers
-fi
-if [ ! -d "$HOME/$url/recon/wayback" ]; then
-    mkdir $HOME/$url/recon/wayback
-fi
-if [ ! -d "$HOME/$url/recon/wayback/params" ]; then
-    mkdir $HOME/$url/recon/wayback/params
-fi
-if [ ! -d "$HOME/$url/recon/wayback/extensions" ]; then
-    mkdir $HOME/$url/recon/wayback/extensions
-fi
-if [ ! -f "$HOME/$url/recon/httprobe/alive.txt" ]; then
-    touch $HOME/$url/recon/httprobe/alive.txt
-fi
-if [ ! -f "$HOME/$url/recon/final.txt" ]; then
-    touch $HOME/$url/recon/final.txt
-fi
+# Define directories
+info_path="$base_dir/info"
+subdomain_path="$base_dir/subdomains"
+screenshot_path="$base_dir/screenshots"
+httprobe_path="$base_dir/httprobe"
+wayback_path="$base_dir/wayback"
+takeover_path="$base_dir/potential_takeovers"
+scan_path="$base_dir/scans"
+gowitness_path="$base_dir/gowitness"
 
-echo "[+] Harvesting subdomains with assetfinder..."
-assetfinder $url >>$HOME/$url/recon/assets.txt
-cat $HOME/$url/recon/assets.txt | grep $1 >>$HOME/$url/recon/final.txt
-rm $HOME/$url/recon/assets.txt
+# Create directories
+for path in "$info_path" "$subdomain_path" "$screenshot_path" "$httprobe_path" "$wayback_path/params" "$wayback_path/extensions" "$takeover_path" "$scan_path" "$gowitness_path"; do
+    if [ ! -d "$path" ]; then
+        mkdir -p "$path"
+        echo "Created directory: $path"
+    fi
+done
 
-echo "[+] Double checking for subdomains with amass..."
-amass enum -d $HOME/$url >> $HOME/$url/recon/f.txt
-sort -u $HOME/$url/recon/f.txt >> $HOME/$url/recon/final.txt
-rm $HOME/$url/recon/f.txt
+echo -e "${GREEN}[+] Recon started for $domain${RESET}"
 
-echo "[+] Probing for alive domains..."
-cat $HOME/$url/recon/final.txt | sort -u | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ':443' >>$HOME/$url/recon/httprobe/a.txt
-sort -u $HOME/$url/recon/httprobe/a.txt >$HOME/$url/recon/httprobe/alive.txt
-rm $HOME/$url/recon/httprobe/a.txt
+# WHOIS
+echo -e "${RED}[+] Checking whois info...${RESET}"
+whois "$domain" >"$info_path/whois.txt"
 
-echo "[+] Checking for possible subdomain takeover..."
+# Subfinder
+echo -e "${RED}[+] Running subfinder...${RESET}"
+subfinder -d "$domain" >"$subdomain_path/found.txt"
 
-if [ ! -f "$HOME/$url/recon/potential_takeovers/potential_takeovers.txt" ]; then
-    touch $HOME/$url/recon/potential_takeovers/potential_takeovers.txt
-fi
+# Assetfinder
+echo -e "${RED}[+] Running assetfinder...${RESET}"
+assetfinder "$domain" | grep "$domain" >>"$subdomain_path/found.txt"
 
-subjack -w $HOME/$url/recon/final.txt -t 100 -timeout 30 -ssl -c ~/go/src/github.com/haccer/subjack/fingerprints.json -v 3 -o $HOME/$url/recon/potential_takeovers/potential_takeovers.txt
+# Amass
+echo -e "${RED}[+] Running amass...${RESET}"
+amass enum -d "$domain" >>"$subdomain_path/found.txt"
 
-echo "[+] Scanning for open ports..."
-nmap -iL $HOME/$url/recon/httprobe/alive.txt -T4 -oA $HOME/$url/recon/scans/scanned.txt
+# Deduplicate
+sort -u "$subdomain_path/found.txt" -o "$subdomain_path/found.txt"
 
-echo "[+] Scraping wayback data..."
-cat $HOME/$url/recon/final.txt | waybackurls >>$HOME/$url/recon/wayback/wayback_output.txt
-sort -u $HOME/$url/recon/wayback/wayback_output.txt
+# Alive check
+echo -e "${RED}[+] Probing for alive domains...${RESET}"
+cat "$subdomain_path/found.txt" | sort -u | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ':443' >>"$httprobe_path/alive.txt"
 
-echo "[+] Pulling and compiling all possible params found in wayback data..."
-cat $HOME/$url/recon/wayback/wayback_output.txt | grep '?*=' | cut -d '=' -f 1 | sort -u >>$HOME/$url/recon/wayback/params/wayback_params.txt
-for line in $(cat $HOME/$url/recon/wayback/params/wayback_params.txt); do echo $line'='; done
+# Screenshots
+echo -e "${RED}[+] Taking screenshots with gowitness...${RESET}"
+gowitness scan file -f "$httprobe_path/alive.txt" -s screenshots/ \
+    --write-jsonl --write-jsonl-file gowitness.jsonl --quiet
 
-echo "[+] Pulling and compiling js/php/aspx/jsp/json files from wayback output..."
-for line in $(cat $HOME/$url/recon/wayback/wayback_output.txt); do
+# Possible takeover
+echo -e "${RED}[+] Checking for possible subdomain takeovers...${RESET}"
+subjack -w "$subdomain_path/found.txt" -t 100 -timeout 30 -ssl -c ~/go/pkg/mod/github.com/haccer/subjack@v0.0.0-20201112041112-49c51e57deab/fingerprints.json \
+    -o "$takeover_path/potential_takeovers.txt"
+
+# Nmap
+echo -e "${RED}[+] Scanning for open ports with Rustscan + Nmap...${RESET}"
+rustscan -a "$httprobe_path/alive.txt" --ulimit 5000 --range 1-65535 \
+    --no-config -t 2000 -b 500 \
+    -- -T4 -oA "$scan_path/scanned" >/dev/null 2>&1
+
+# Wayback data
+echo -e "${RED}[+] Scraping Wayback Machine data...${RESET}"
+cat "$subdomain_path/found.txt" | waybackurls \
+    >"$wayback_path/wayback_output.txt" 2>/dev/null
+
+# Wayback params
+echo -e "${RED}[+] Extracting parameters from wayback data...${RESET}"
+cat "$wayback_path/wayback_output.txt" | grep '?*=' | cut -d '=' -f 1 | sort -u >"$wayback_path/params/wayback_params.txt"
+
+# Wayback extensions
+echo -e "${RED}[+] Extracting js/php/aspx/jsp/json/html files from wayback data...${RESET}"
+for line in $(cat "$wayback_path/wayback_output.txt"); do
     ext="${line##*.}"
-    if [[ "$ext" == "js" ]]; then
-        echo $line >>$HOME/$url/recon/wayback/extensions/js1.txt
-        sort -u $HOME/$url/recon/wayback/extensions/js1.txt >>$HOME/$url/recon/wayback/extensions/js.txt
-    fi
-    if [[ "$ext" == "html" ]]; then
-        echo $line >>$HOME/$url/recon/wayback/extensions/jsp1.txt
-        sort -u $HOME/$url/recon/wayback/extensions/jsp1.txt >>$HOME/$url/recon/wayback/extensions/jsp.txt
-    fi
-    if [[ "$ext" == "json" ]]; then
-        echo $line >>$HOME/$url/recon/wayback/extensions/json1.txt
-        sort -u $HOME/$url/recon/wayback/extensions/json1.txt >>$HOME/$url/recon/wayback/extensions/json.txt
-    fi
-    if [[ "$ext" == "php" ]]; then
-        echo $line >>$HOME/$url/recon/wayback/extensions/php1.txt
-        sort -u $HOME/$url/recon/wayback/extensions/php1.txt >>$HOME/$url/recon/wayback/extensions/php.txt
-    fi
-    if [[ "$ext" == "aspx" ]]; then
-        echo $line >>$HOME/$url/recon/wayback/extensions/aspx1.txt
-        sort -u $HOME/$url/recon/wayback/extensions/aspx1.txt >>$HOME/$url/recon/wayback/extensions/aspx.txt
-    fi
+    case "$ext" in
+    js) echo "$line" >>"$wayback_path/extensions/js.txt" ;;
+    json) echo "$line" >>"$wayback_path/extensions/json.txt" ;;
+    php) echo "$line" >>"$wayback_path/extensions/php.txt" ;;
+    aspx) echo "$line" >>"$wayback_path/extensions/aspx.txt" ;;
+    jsp | html) echo "$line" >>"$wayback_path/extensions/jsp.txt" ;;
+    esac
 done
 
-rm $HOME/$url/recon/wayback/extensions/js1.txt
-rm $HOME/$url/recon/wayback/extensions/jsp1.txt
-rm $HOME/$url/recon/wayback/extensions/json1.txt
-rm $HOME/$url/recon/wayback/extensions/php1.txt
-rm $HOME/$url/recon/wayback/extensions/aspx1.txt
+sort -u -o "$wayback_path/extensions/js.txt" "$wayback_path/extensions/js.txt"
+sort -u -o "$wayback_path/extensions/json.txt" "$wayback_path/extensions/json.txt"
+sort -u -o "$wayback_path/extensions/php.txt" "$wayback_path/extensions/php.txt"
+sort -u -o "$wayback_path/extensions/aspx.txt" "$wayback_path/extensions/aspx.txt"
+sort -u -o "$wayback_path/extensions/jsp.txt" "$wayback_path/extensions/jsp.txt"
 
-echo "[+] Running eyewitness against all compiled domains..."
-for $currUrl in $HOME/$url/httprobe/alive.txt; do 
-    gowitness scan single --url "$currUrl" --write-db
-done
+echo -e "${GREEN}[+] Recon completed for $domain. Output saved in $base_dir${RESET}"
