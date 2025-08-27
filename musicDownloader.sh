@@ -1,13 +1,12 @@
 #!/bin/bash
 
-if [ -z "$1" ]; then
+if [ $# -eq 0 ]; then
     echo "Usage: $0 <MUSIC_URL>"
     exit 1
 fi
 
-url="$1"
-
-output_dir="$HOME/Music/"
+URL="$1"
+OUTPUT_DIR="$HOME/Music"
 
 yt-dlp -f bestaudio \
     --extract-audio \
